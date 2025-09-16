@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PONG</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #fff;
+            text-align: center;
+            font-size: 2rem;
+        }
+
+        canvas {
+            background-color: #111;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            cursor: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PONG</h1>
+    <canvas id="pongCanvas" width="800" height="600"></canvas>
+    
+    <script>
+        // Acessa o elemento canvas e seu contexto 2D
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Variáveis do Jogo ---
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // --- Raquete do Jogador ---
+        const playerPaddle = {
+            x: 10,
+            y: canvasHeight / 2 - 50,
+            width: 10,
+            height: 100,
+            dy: 0 // Velocidade vertical
+        };
+
+        // --- Raquete do Computador ---
+        const computerPaddle = {
+            x: canvasWidth - 20,
+            y: canvasHeight / 2 - 50,
+            width: 10,
+            height: 100,
+            dy: 4 // Velocidade vertical do computador
+        };
+
+        // --- Bola ---
+        const ball = {
+            x: canvasWidth / 2,
+            y: canvasHeight / 2,
+            radius: 7,
+            dx: 5, // Velocidade horizontal
+            dy: 5  // Velocidade vertical
+        };
+
+        let playerScore = 0;
+        let computerScore = 0;
+
+        // --- Funções de Desenho ---
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawCircle(x, y, radius, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawText(text, x, y) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, x, y);
+        }
+
+        // --- Funções de Atualização (Lógica do Jogo) ---
+        function update() {
+            // Limpa a tela
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Desenha os elementos
+            drawRect(playerPaddle.x, playerPaddle.y, playerPaddle.width, playerPaddle.height, '#fff');
+            drawRect(computerPaddle.x, computerPaddle.y, computerPaddle.width, computerPaddle.height, '#fff');
+            drawCircle(ball.x, ball.y, ball.radius, '#fff');
+            drawText(playerScore, canvasWidth / 4, 50);
+            drawText(computerScore, 3 * canvasWidth / 4, 50);
+
+            // Movimenta a bola
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Colisão da bola com as paredes superior e inferior
+            if (ball.y + ball.radius > canvasHeight || ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // Colisão da bola com a raquete do jogador
+            if (ball.x - ball.radius < playerPaddle.x + playerPaddle.width && 
+                ball.y + ball.radius > playerPaddle.y &&
+                ball.y - ball.radius < playerPaddle.y + playerPaddle.height) {
+                ball.dx = -ball.dx;
+            }
+
+            // Colisão da bola com a raquete do computador
+            if (ball.x + ball.radius > computerPaddle.x && 
+                ball.y + ball.radius > computerPaddle.y &&
+                ball.y - ball.radius < computerPaddle.y + computerPaddle.height) {
+                ball.dx = -ball.dx;
+            }
+
+            // Ponto para o jogador ou para o computador
+            if (ball.x < 0) {
+                computerScore++;
+                resetBall();
+            } else if (ball.x > canvasWidth) {
+                playerScore++;
+                resetBall();
+            }
+
+            // IA da raquete do computador (segue a bola)
+            if (computerPaddle.y + computerPaddle.height / 2 < ball.y) {
+                computerPaddle.y += computerPaddle.dy;
+            } else {
+                computerPaddle.y -= computerPaddle.dy;
+            }
+        }
+
+        // Reseta a posição da bola para o centro
+        function resetBall() {
+            ball.x = canvasWidth / 2;
+            ball.y = canvasHeight / 2;
+            // Inverte a direção horizontal da bola
+            ball.dx = -ball.dx;
+        }
+
+        // --- Eventos de Teclado ---
+        document.addEventListener('keydown', e => {
+            // Mover raquete do jogador para cima
+            if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
+                playerPaddle.dy = -7;
+            }
+            // Mover raquete do jogador para baixo
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
+                playerPaddle.dy = 7;
+            }
+        });
+
+        document.addEventListener('keyup', e => {
+            // Parar de mover a raquete
+            if (e.key === 'w' || e.key === 'W' || e.key === 's' || e.key === 'S' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                playerPaddle.dy = 0;
+            }
+        });
+
+        // Loop principal do jogo
+        function gameLoop() {
+            // Atualiza a posição da raquete do jogador
+            playerPaddle.y += playerPaddle.dy;
+            
+            // Limita o movimento da raquete dentro da tela
+            if (playerPaddle.y < 0) {
+                playerPaddle.y = 0;
+            } else if (playerPaddle.y + playerPaddle.height > canvasHeight) {
+                playerPaddle.y = canvasHeight - playerPaddle.height;
+            }
+
+            // Garante que a raquete do computador também fique dentro da tela
+            if (computerPaddle.y < 0) {
+                computerPaddle.y = 0;
+            } else if (computerPaddle.y + computerPaddle.height > canvasHeight) {
+                computerPaddle.y = canvasHeight - computerPaddle.height;
+            }
+
+            update();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Inicia o jogo
+        gameLoop();
+    </script>
+</body>
+</html>
